@@ -1,0 +1,98 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+use Math::FFT;
+use List::Util qw(sum);
+
+init_dsp();
+read_dsp();
+my @Sound;
+my $freq = "4";
+my $SoundStr;
+my $Idlevol = "9.999";
+my $TXLoop = "0";
+my $file = "/opt/FreeRadioNetwork/spool/TX.PTT";
+while(1) {
+        @Sound = process_signal(read_dsp());
+		
+		$SoundStr = @Sound[$freq];
+		
+		
+		if (@Sound[$freq] <= "0.039"  ) {
+			if ($TXLoop == "1") {
+				printf("Sound \n");
+				unless(open FILE, '>'.$file) {
+					die "\nUnable to create $file\n";
+				}
+				print FILE "Hello there\n";
+				close FILE;
+				$SoundStr = "9.999";
+			} else {
+				$TXLoop = "1";
+			} 
+		} else { 
+		if ($SoundStr <= $Idlevol){
+		$Idlevol = $SoundStr; }}
+		if (@Sound[$freq] >= "0.8") {
+				unlink $file;
+				if ($TXLoop == "1") {
+				}
+				$TXLoop = "0";
+				
+		} 
+		printf("Sound : %s    IDLE : %s\n",$SoundStr,$Idlevol);
+		}
+our ($devname, $fmt, $bitrate, $wps, $bps, $bufsize, $dsp);
+BEGIN {
+	$devname = "default";
+	$fmt = 16; 
+	$bitrate = 8192; 
+	$wps = 32;            
+	$bps = ($fmt * $bitrate) / 4;
+	$bufsize = $bps / $wps;
+}
+ 
+sub init_dsp {
+	open ($dsp, '-|', 'arecord', '-D', $devname, '-t', 'raw',
+		'-r', $bitrate, '-f', 'S'.$fmt) or die "arecord: $!";
+	use IO::Handle;
+	$dsp->autoflush(1);
+}
+ 
+sub read_dsp {
+	my $w;
+	read $dsp, $w, $bufsize or die "read: $!"; 
+        return $w;
+}
+
+sub process_signal {
+	my ($bytes) = @_;
+
+	# Convert raw bytes to a list of numerical values.
+	$fmt == 16 or die "unsupported $fmt bits per sample\n";
+	my @samples;
+	while (length($bytes) > 0) {
+		my $sample = unpack('s<', substr($bytes, 0, 2, ''));
+		push(@samples, $sample);
+	}
+
+	# Perform RDFT
+	my $fft = Math::FFT->new(\@samples);
+	my $coeff = $fft->rdft;
+
+	# The output are complex numbers describing the exactly phased
+	# sin/cos waves. By taking an abs value of the complex numbers,
+	# we just measure the amplitude of a wave for each frequency.
+	my @mag;
+	$mag[0] = sqrt($coeff->[0]**2);
+	for (my $k = 1; $k < @$coeff / 2; $k++) {
+		$mag[$k] = sqrt(($coeff->[$k * 2] ** 2) + ($coeff->[$k * 2 + 1] ** 2));
+	}
+
+	# Rescale to 0..1. Many fancy strategies are possible, this is
+	# extremely silly.
+	my $avgmag = sum (@mag) / @mag;
+	@mag = map { $_ / $avgmag * 0.5 } @mag;
+        return @mag;
+}

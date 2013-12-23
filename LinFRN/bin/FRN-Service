@@ -1,0 +1,5 @@
+#!/bin/sh
+/usr/bin/FRN-Update
+daemon /usr/bin/FRN-Server
+daemon /usr/bin/FRN-VOX
+daemon /usr/bin/FRN-Gateway

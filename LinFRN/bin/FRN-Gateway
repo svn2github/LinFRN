@@ -1,0 +1,217 @@
+#!/usr/bin/perl -w
+
+use strict;
+use warnings;
+use utf8;
+use Net::FRN 0.06;
+use Text::Iconv;
+use IO::Socket;
+
+my $logging       = 1;                                     # 1= logging is on
+my $logFilePath   = "/var/log/";                           # log file path
+my $logFile       = $logFilePath ."FRN-Gateway.log";
+my $win2utf = Text::Iconv->new('cp1251', 'utf-8');
+my $utf2win = Text::Iconv->new('utf-8', 'cp1251');
+my ($sndOut, $sndIn);
+my $TXState = "false";
+my $RXState : shared = 1;
+my $rotoPhase = 0;
+my $lastTX = 'Init';
+my $RXENDTime = 0;
+my $LastRXTime = 1;
+my $LastRXUser = '';
+my $LastRX = 0;
+my $RXTime = 0;
+my $StopedRX = 1;
+my $OnNetwork = 0;
+my $frn = Net::FRN->client;
+my $socket = new IO::Socket::INET ( # Connect to Telnet Server to Stream Data
+    PeerAddr  => '127.0.0.1',
+    PeerPort  =>  8043,
+    Proto => 'tcp',
+)
+or die "Couldn't connect to Server\n";
+# turn on logging
+if ($logging) {
+	open LOG, ">>$logFile";
+	select((select(LOG), $|=1)[0]); # make the log file "hot" - turn off buffering
+}
+open($sndOut, '| aplay -q -t raw -f S16_LE -c 1 -r 8000 --buffer-time=2000000') or die $!;
+$frn->handler('onMessage',      \&onMessage);
+$frn->handler('onClientList',   \&onClientList);
+$frn->handler('onNetworkList',  \&onNetworkList);
+$frn->handler('onRX',           \&onRX);
+$frn->handler('onPCM',          \&onPCM);
+$frn->handler('onTX',           \&onTX);
+$frn->handler('onPCMTX',        \&onPCMTX);
+$frn->handler('onPing',         \&onPing);
+$frn->handler('onLogin',        \&onLogin);
+$frn->handler('onPTTDown',      \&onPTTDown);
+$frn->handler('onPTTUp',        \&onPTTUp);
+$frn->handler('onTXRequest',    sub { print "TX request\n" });
+$frn->handler('onTXApprove',    \&onTXOK);
+$frn->handler('onTXComplete',   sub { print "TX complete\n" });
+$frn->handler('onConnect',      \&onFRNStartup);
+$frn->handler('onDisconnect',   \&onDisconnect);
+$frn->handler('onMessageInput', \&onMessageInput);
+$frn->handler('onPLAYWav',      \&onPlayWav);
+print "About to run\n";
+logEntry ("Starting Client");
+$frn->run;
+
+sub onTXOK {
+	printf("TX approved for client %s\n", shift->{ON});
+}
+
+sub onFRNStartup {
+	print "Connected\n";
+	logEntry ("Connected to FRN Server");
+       # exec ("ifconfig  | grep 'inet addr:'| grep -v '127.0.0.1' | cut -d: -f2 | awk '{ print $1}' | festival --tts");
+	   open($sndIn,  'arecord -q -t raw -f S16_LE -c 1 -r 8000 -Dplug:dsnoop --buffer-time=2000000| dd ibs=16000 iflag=fullblock oflag=dsync |')  or die $!;
+}
+
+sub onDisconnect { # FRN has Disconnected
+	print "Disconnected\n";
+	logEntry ("Client Disconnected");
+	print "Restarting Service\n";
+	logEntry ("Restarting Service");
+	{ exec ('FRN-Gateway') }; print STDERR "couldn't exec FRN-Client: $!";
+	exit 0;
+}
+sub onMessage { # Message from FRN
+    my $message = shift;
+	my $sender = "Message :".$win2utf->convert($message->{from}{ON}). ",".$win2utf->convert($message->{text}) . "\n" ;
+    my $MSG = $win2utf->convert($message->{from}{ON}) . " >" . $win2utf->convert($message->{text});
+	$socket->send($sender);
+	my $filename = '/var/www/message.data';
+	open(my $fh, '>>', $filename) or die "Could not open file '$filename' $!";
+	my $sender2 = $win2utf->convert($message->{from}{ON}).":".$win2utf->convert($message->{text}) . "\n" ;
+	say $fh $sender2;
+	close $fh;
+	
+    
+	logEntry ($MSG);
+    return printf("%s message from %s:\n%s\n\n",
+        $message->{type} eq 'P' ? 'Private' : 'Broadcast',
+        $win2utf->convert($message->{from}{ON}),
+        $win2utf->convert($message->{text})
+    );
+}
+sub onClientList { # Client List Has Changed
+    my $clientList = shift;
+	my $filename = '/var/www/client.csv';
+	open(my $fh, '>', $filename) or die "Could not open file '$filename' $!";
+    foreach (@$clientList) {
+	my $sender = "Client List :".$win2utf->convert($_->{BC}). ",".$win2utf->convert($_->{ON}) . "," . $win2utf->convert($_->{CT}) . "\n" ;
+	say $fh $win2utf->convert($_->{BC}). "|".$win2utf->convert($_->{ON}) . "|" . $win2utf->convert($_->{CT});
+	$socket->send($sender);
+           # $win2utf->convert($_->{BC}),
+           # $win2utf->convert($_->{ON}),
+           # $win2utf->convert($_->{CT})
+        #);
+    }
+	close $fh;
+    return scalar(@$clientList);
+}
+sub onMuteList { # Someone has been Muted
+    my $muteList = shift;
+}
+sub onBanList { # Someone has been Banned
+    my $banList = shift;
+}
+sub onNetworkList { # List the Avail Networks on FRN Server
+    my $networkList = shift;
+}
+sub onRX { # Audio From FRN
+	my $clientList = shift;
+	my $user = $win2utf->convert($clientList->{ON});
+	$StopedRX = 0;
+	$LastRXTime = $LastRXTime ++;
+	if ($LastRXUser = $user ) {
+	if ($LastRX == 0) {
+	my $sender = "RX START:".$win2utf->convert($clientList->{ON})."\n" ;
+	$socket->send($sender);
+	$LastRX = 1;
+	$StopedRX = 0;
+	} }
+	$LastRXUser = $win2utf->convert($clientList->{ON});
+	my $filename = '/var/www/lastrx.data';
+	open(my $fh, '>', $filename) or die "Could not open file '$filename' $!";
+	say $fh $win2utf->convert($clientList->{ON});
+	close $fh;
+}
+sub onTX { # Audio TO FRN
+}
+sub onPCM { # PCM Audio RX
+    my $pcm = shift;
+    print($sndOut $pcm);
+}
+sub onPCMTX { # PCM Audio TX
+    my $pcm;
+    read($sndIn, $pcm, 3200);
+    return $pcm;
+}
+sub onPTTDown { # Started to Transmit to FRN
+    print "PTT pressed\n";
+	logEntry ("About to Xmit to FRN");
+    open($sndIn,  'arecord -q -t raw -f S16_LE -c 1 -r 8000 -Dplug:dsnoop --buffer-time=2000000|')  or die $!;
+}
+sub onPTTUp { # Stopped Transmit to FRN
+    print "PTT released\n";
+	logEntry ("Xmit Complete to FRN");
+    close($sndIn);
+}
+sub onPing { # called every half second
+
+	my $self = shift;
+	if ($LastRXTime == $RXTime) {
+	if ($StopedRX == 1) {
+	$LastRX = 0;
+	my $sender = "RX STOP :".$LastRXUser."\n"  ;
+	$LastRXUser = "";
+	$socket->send($sender);
+	$StopedRX = 5;
+	my $filename = '/var/www/lastrx.data';
+	open(my $fh, '>>', $filename) or die "Could not open file '$filename' $!";
+	say $fh "IDLE";
+	close $fh;
+	} 
+	}
+	$StopedRX = $StopedRX + 1;
+	$RXTime = $LastRXTime;
+}
+sub onPlayWav { # play wav file to radio
+		my $a = "/opt/FreeRadioNetwork/sounds/over.wav";
+		close($sndOut);
+	 	open($sndOut, '| aplay -q ' . $a);
+		close($sndOut);
+		open($sndOut, '| aplay -q -t raw -f S16_LE -c 1 -r 8000 --buffer-time=2000000') or die $!;
+}
+sub playwav { # play wav file to radio
+		my($a); 
+		($a) = @_;
+		close($sndOut);
+	 	open($sndOut, '| ' . $a);
+		sleep(1);
+		close($sndOut);
+		open($sndOut, '| aplay -q -t raw -f S16_LE -c 1 -r 8000 --buffer-time=2000000') or die $!;
+}
+sub onLogin { # FRN Login OK
+   # $frn->message($utf2win->convert('Raspberry PI Client Online (<a href="http://frn.mk-tech.co.uk">frn.mk-tech.co.uk</a>)'));
+}
+sub onMessageInput { # Sending Message to FRN
+    print "\nInput your message:\n";
+    my $buffer = <>;
+    chomp $buffer;
+    return $utf2win->convert($buffer);
+}
+
+# add a line to the log file
+sub logEntry {
+	my ($logText) = @_;
+	my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime(time);
+	my $dateTime = sprintf "%4d-%02d-%02d %02d:%02d:%02d", $year + 1900, $mon + 1, $mday, $hour, $min, $sec;
+	if ($logging) {
+		print LOG "$dateTime $logText\n";
+	}
+}
