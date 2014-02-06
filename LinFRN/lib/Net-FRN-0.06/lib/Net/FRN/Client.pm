@@ -689,12 +689,12 @@ sub _login {
 }
 sub _phase2 {
     my $self = shift;
-    $self->{_KP} =~ /^(\d{2})(\d{2})(\d{2})$/;
-    my $X = ($1 + 2) * ($2 + 1) + ($3 + 4) * ($3 + 7);
-    $X = '0' x (5 - length($X)) . $X;
-    my @X = split(//, $X);
-    $X = join('', $X[3], $X[0], $X[2], $X[4], $X[1]);
-    $self->_pushLine($X);
+    # $self->{_KP} =~ /^(\d{2})(\d{2})(\d{2})$/;
+    # my $X = ($1 + 2) * ($2 + 1) + ($3 + 4) * ($3 + 7);
+    # $X = '0' x (5 - length($X)) . $X;
+    # my @X = split(//, $X);
+    # $X = join('', $X[3], $X[0], $X[2], $X[4], $X[1]);
+    # $self->_pushLine($X);
 }
 sub _ping {
     my $self = shift;
