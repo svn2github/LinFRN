@@ -12,7 +12,7 @@ my $freq = "4";
 my $SoundStr;
 my $Idlevol = "9.999";
 my $TXLoop = "0";
-my $file = "/opt/FreeRadioNetwork/spool/TX.PTT";
+my $file = "/opt/LinFRN/spool/TX.PTT";
 while(1) {
         @Sound = process_signal(read_dsp());
 		
