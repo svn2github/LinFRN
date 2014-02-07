@@ -2,24 +2,38 @@
 export PERL_MM_USE_DEFAULT=True
 
 # Install Dependencies From Aptitude
-apt-get install -y subversion make gcc libgsm1-dev daemon alsa-utils apache2 php5
+apt-get install -y subversion make gcc libgsm1-dev daemon alsa-utils
 
 # Install CPAN Dependencies
-cpan Audio::GSM POE Config::Simple Device::SerialPort Math::FFT
+cpan Audio::GSM POE Config::Simple Device::SerialPort
 
 # Get the Code from Google.
+mkdir /tmp/LinFRN
 mkdir /opt/LinFRN
-cd /opt/LinFRN
+cd /tmp
 svn checkout http://linux-frn-client.googlecode.com/svn/
-chmod 755 /opt/LinFRN/svn/LinFRN/bin/*
-cp -f /opt/LinFRN/svn/LinFRN/bin/* /usr/bin/
+mv /tmp/svn/LinFRN/* /opt/LinFRN
+
+# Update Bin Directory
+chmod 755 /opt/LinFRN/bin/*
+cp -f /opt/LinFRN/bin/* /usr/bin/
 chmod 755 /usr/bin/FRN-*
 
-cd /opt/LinFRN/svn/LinFRN/lib/Net-FRN-0.06/
+# Build Net-FRN
+cd /opt/LinFRN/lib/Net-FRN-0.06/
 make clean
 perl Makefile.PL
 make
 make install
-mkdir /var/www
-mv /opt/LinFRN/svn/LinFRN/config/frnclient.conf /var/www/
-mv /opt/LinFRN/svn/LinFRN/htdocs/* /var/www/
+
+FILE="/var/www/frnclient.conf"
+ 
+if [ -f $FILE ];
+then
+   echo "File $FILE exists... Skipping"
+else
+   echo "File $FILE does not exists... Updating"
+   mv /opt/LinFRN/config/frnclient.conf /var/www/frnclient.conf
+fi
+
+
