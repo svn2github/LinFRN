@@ -181,7 +181,7 @@ sub onPing { # called every half second
 	$RXTime = $LastRXTime;
 }
 sub onPlayWav { # play wav file to radio
-		my $a = "/opt/FreeRadioNetwork/sounds/over.wav";
+		my $a = "/opt/LinFRN/sounds/over.wav";
 		close($sndOut);
 	 	open($sndOut, '| aplay -q ' . $a);
 		close($sndOut);
