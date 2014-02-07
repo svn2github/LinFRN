@@ -10,6 +10,7 @@ cpan Audio::GSM POE Config::Simple Device::SerialPort
 # Get the Code from Google.
 mkdir /tmp/LinFRN
 mkdir /opt/LinFRN
+mkdir /opt/LinFRN/spool
 cd /tmp
 svn checkout http://linux-frn-client.googlecode.com/svn/
 mv /tmp/svn/LinFRN/* /opt/LinFRN
