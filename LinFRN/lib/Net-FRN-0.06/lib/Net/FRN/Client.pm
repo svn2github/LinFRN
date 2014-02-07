@@ -789,7 +789,7 @@ sub _closePTTFile {
 }
 sub _readPTT {
     my $self = shift;
-	if (-e '/opt/FreeRadioNetwork/spool/TX.PTT') {
+	if (-e '/opt/LinFRN/spool/TX.PTT') {
 	    if ($NoLoopPTT eq 0) {
 			$self->{_ptt} = (PTT_DOWN | PTT_CHANGED);
 			$NoLoopPTT = 1;
