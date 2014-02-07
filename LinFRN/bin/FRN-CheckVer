@@ -1,0 +1,19 @@
+#!/usr/bin/perl -w
+system ('clear');
+print "Checking for LinFRN Update's \n";
+system ('rm /tmp/update.ver >/dev/null 2>&1');
+system ('wget http://vps.sussexdownsradiolink.co.uk/linfrn.ver -O /tmp/update.ver >/dev/null 2>&1');
+$filename = "/tmp/update.ver";
+open my $fh, '<', $filename or die "error opening $filename: $!";
+my $updatever = do { local $/; <$fh> };
+$filename = "/opt/linfrn.ver";
+open my $fh, '<', $filename or die "error opening $filename: $!";
+my $currentver = do { local $/; <$fh> };
+if ($updatever > $currentver) {
+print "Update Availiable \n";
+system ('/usr/bin/FRN-Update');
+system ('rm /opt/linfrn.ver');
+system ('mv /tmp/update.ver /opt/linfrn.ver');
+} else {
+print "No Update Needed \n";
+}
