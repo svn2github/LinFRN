@@ -2,10 +2,11 @@
 export PERL_MM_USE_DEFAULT=True
 
 # Install Dependencies From Aptitude
-apt-get install -y subversion make gcc libgsm1-dev daemon alsa-utils
+apt-get update -y
+apt-get install -y apache2 php5 subversion make gcc libgsm1-dev daemon alsa-utils
 
 # Install CPAN Dependencies
-cpan Audio::GSM POE Config::Simple Device::SerialPort
+cpan Audio::GSM POE Math::FFT Config::Simple Device::SerialPort
 
 # Get the Code from Google.
 mkdir /tmp/LinFRN
@@ -36,5 +37,10 @@ else
    echo "File $FILE does not exists... Updating"
    mv /opt/LinFRN/config/frnclient.conf /var/www/frnclient.conf
 fi
-
-
+mkdir /opt/LinFRN/www
+cd /opt/LinFRN/www
+rm index.html
+wget http://vps.sussexdownsradiolink.co.uk/linfrnweb.zip
+unzip linfrnweb.zip
+touch /var/log/FRN-Gateway.log
+chmod 777 /var/log/FRN-Gateway.log
