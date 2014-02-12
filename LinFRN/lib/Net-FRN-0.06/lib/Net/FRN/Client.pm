@@ -24,7 +24,7 @@ my $RXENDTime = 0;
 my $LastRXTime= 0;
 my $RXTweek = 5;
 my $port;
-my $Rogerfile = "/opt/FreeRadioNetwork/sounds/over.wav";
+my $Rogerfile = "/opt/FreeRadioNetwork/sounds/Over01.wav";
 BEGIN {
     $HAS_AUDIO_GSM   = eval("use Audio::GSM 0.03;   \$Audio::GSM::VERSION")   && !$!;
     $HAS_WIN32_SOUND = eval("use Win32::Sound; \$Win32::Sound::VERSION") && !$!;
