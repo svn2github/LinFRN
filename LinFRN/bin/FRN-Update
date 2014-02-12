@@ -14,7 +14,7 @@ mkdir /opt/LinFRN
 mkdir /opt/LinFRN/spool
 cd /tmp
 svn checkout http://linux-frn-client.googlecode.com/svn/
-mv /tmp/svn/LinFRN/* /opt/LinFRN
+mv -f /tmp/svn/LinFRN/* /opt/LinFRN
 
 # Update Bin Directory
 chmod 755 /opt/LinFRN/bin/*
