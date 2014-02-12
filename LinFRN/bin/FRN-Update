@@ -39,7 +39,7 @@ else
    mv /opt/LinFRN/config/frnclient.conf /var/www/frnclient.conf
 fi
 mkdir /opt/LinFRN/www
-cd /opt/LinFRN/www
+cd /var/www
 rm index.html
 wget http://vps.sussexdownsradiolink.co.uk/linfrnweb.zip
 unzip linfrnweb.zip
