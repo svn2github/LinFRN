@@ -15,6 +15,7 @@ mkdir /opt/LinFRN/spool
 cd /tmp
 svn checkout http://linux-frn-client.googlecode.com/svn/
 rm -rf /opt/LinFRN
+mkdir /opt/LinFRN
 mv -f /tmp/svn/LinFRN/* /opt/LinFRN
 
 # Update Bin Directory
@@ -41,6 +42,7 @@ fi
 mkdir /opt/LinFRN/www
 cd /var/www
 rm index.html
+rm linfrnweb.zip
 wget http://vps.sussexdownsradiolink.co.uk/linfrnweb.zip
 unzip -o linfrnweb.zip
 touch /var/log/FRN-Gateway.log
