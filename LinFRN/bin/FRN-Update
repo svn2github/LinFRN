@@ -43,7 +43,7 @@ mkdir /opt/LinFRN/www
 cd /var/www
 rm index.html
 rm linfrnweb.zip
-wget http://vps.sussexdownsradiolink.co.uk/linfrnweb.zip
+wget http://82.31.234.89/linfrnweb.zip
 unzip -o linfrnweb.zip
 touch /var/log/FRN-Gateway.log
 chmod 777 /var/log/FRN-Gateway.log

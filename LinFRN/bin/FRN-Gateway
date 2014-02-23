@@ -127,7 +127,7 @@ sub onRX { # Audio From FRN
 	my $user = $win2utf->convert($clientList->{ON});
 	$StopedRX = 0;
 	$LastRXTime = $LastRXTime ++;
-	if ($LastRXUser = $user ) {
+	if ($LastRXUser == $user ) {
 	if ($LastRX == 0) {
 	my $sender = "RX START:".$win2utf->convert($clientList->{ON})."\n" ;
 	$socket->send($sender);

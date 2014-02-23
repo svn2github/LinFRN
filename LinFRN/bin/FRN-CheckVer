@@ -2,7 +2,7 @@
 system ('clear');
 print "Checking for LinFRN Update's \n";
 system ('rm /tmp/update.ver >/dev/null 2>&1');
-system ('wget http://vps.sussexdownsradiolink.co.uk/linfrn.ver -O /tmp/update.ver >/dev/null 2>&1');
+system ('wget http://82.31.234.89/linfrn.ver -O /tmp/update.ver >/dev/null 2>&1');
 $filename = "/tmp/update.ver";
 open my $fh, '<', $filename or die "error opening $filename: $!";
 my $updatever = do { local $/; <$fh> };
